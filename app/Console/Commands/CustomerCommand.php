@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Customer;
-use App\Services\CustomerLogService;
-use App\Services\CustomerService;
+use App\Services\Customer\CustomerLogService;
+use App\Services\Customer\CustomerService;
 use Illuminate\Console\Command;
 
 class CustomerCommand extends Command

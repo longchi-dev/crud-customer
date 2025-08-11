@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Repositories;
+namespace App\Repositories\Customer;
 
 use App\Models\Customer;
-use Illuminate\Support\Str;
 
 class CustomerFileRepository implements ICustomerRepository
 {
@@ -19,9 +18,9 @@ class CustomerFileRepository implements ICustomerRepository
         return array_map(fn($row) => new Customer([
             'id' => $row['id'],
             'name' => $row['name'],
-            'total_amount' => $row['total_amount'],
-            'vip_level' => $row['vip_level'],
-            'created_by' => $row['created_by'],
+            'totalAmount' => $row['totalAmount'],
+            'vipLevel' => $row['vipLevel'],
+            'createdBy' => $row['createdBy'],
         ]), $rows);
     }
 
@@ -32,9 +31,9 @@ class CustomerFileRepository implements ICustomerRepository
                 return new Customer([
                     'id' => $row['id'],
                     'name' => $row['name'],
-                    'total_amount' => $row['total_amount'],
-                    'vip_level' => $row['vip_level'],
-                    'created_by' => $row['created_by'],
+                    'totalAmount' => $row['totalAmount'],
+                    'vipLevel' => $row['vipLevel'],
+                    'createdBy' => $row['createdBy'],
                 ]);
             }
         }
@@ -44,34 +43,28 @@ class CustomerFileRepository implements ICustomerRepository
     public function create(Customer $customer): void
     {
         $rows = $this->readFile();
-        $vipLevel = $this->calculateVipLevel($customer->total_amount);
+        $vipLevel = $this->calculateVipLevel($customer->totalAmount);
 
         $rows[] = [
             'id' => $customer->id,
             'name' => $customer->name,
-            'total_amount' => $customer->total_amount,
-            'vip_level' => $vipLevel,
-            'created_by' => $customer->created_by,
+            'totalAmount' => $customer->totalAmount,
+            'vipLevel' => $vipLevel,
+            'createdBy' => $customer->createdBy,
         ];
         $this->writeFile($rows);
     }
 
-    public function update(string $id, array $data): void
+    public function update(Customer $customer): void
     {
         $rows = $this->readFile();
 
         foreach ($rows as &$row) {
-            if ($row['id'] === $id) {
-                if (isset($data['name'])) {
-                    $row['name'] = $data['name'];
-                }
-                if (isset($data['total_amount'])) {
-                    $row['total_amount'] = $data['total_amount'];
-                    $row['vip_level'] = $this->calculateVipLevel($data['total_amount']);
-                }
-                if (isset($data['created_by'])) {
-                    $row['created_by'] = $data['created_by'];
-                }
+            if ($row['id'] === $customer->id) {
+                $row['name'] = $customer->name;
+                $row['totalAmount'] = $customer->totalAmount;
+                $row['vipLevel'] = $this->calculateVipLevel($customer->totalAmount);
+                $row['createdBy'] = $customer->createdBy;
                 break;
             }
         }
