@@ -15,7 +15,7 @@ class CustomerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'customer {action : list|find|create|update|delete} {--id= : Customer ID} {--name= : Customer Name} {--amount= : Total Amount} {--createdBy= : Creator Name}';
+    protected $signature = 'customer {action : list|find|create|update|delete} {--id= : Customer ID} {--name= : Customer Name} {--amount= : Total Amount}';
 
     /**
      * The console command description.
@@ -24,12 +24,9 @@ class CustomerCommand extends Command
      */
     protected $description = 'CRUD Customer API';
 
-    protected CustomerService $customerService;
-
-    public function __construct(CustomerService $customerService)
+    public function __construct(protected CustomerService $customerService, protected CustomerLogService $customerLogService)
     {
         parent::__construct();
-        $this->customerService = $customerService;
     }
 
     /**
@@ -37,7 +34,6 @@ class CustomerCommand extends Command
      */
     public function handle(): void
     {
-        $logService = CustomerLogService::getInstance();
         $action = $this->argument('action');
 
         switch ($action) {
@@ -63,24 +59,20 @@ class CustomerCommand extends Command
             case 'create':
                 $name = $this->option('name');
                 $amount = $this->option('amount');
-                $createdBy = $this->option('createdBy');
 
-                if (!$name || !$amount || !$createdBy) {
-                    $this->error('Please provide --name, --amount, and --createdBy options.');
+                if (!$name || !$amount) {
+                    $this->error('Please provide --name, --amount options.');
                     return;
                 }
 
-                $customer = $this->customerService->create(
-                    new Customer([
-                        'id' => '',
-                        'name' => $name,
-                        'total_amount' => (float)$amount,
-                        'vip_level' => 0,
-                        'created_by' => $createdBy,
-                    ])
-                );
+                $customer = Customer::make([
+                    'name' => $name,
+                    'total_amount' => (float) $amount,
+                    'vip_level' => 0,
+                ]);
 
-                $logService->log('create', $customer->toArray(), $createdBy);
+
+                $this->customerLogService->log('create', $customer->toArray(), $name);
                 $this->info("Customer created:\n" . json_encode($customer, JSON_PRETTY_PRINT));
                 break;
 
@@ -90,21 +82,32 @@ class CustomerCommand extends Command
                     $this->error('Please provide --id option.');
                     return;
                 }
-                $customer = $this->customerService->findById($id);
-                if (!$customer) {
+
+                $data = [];
+                $name = $this->option('name');
+                $amount = $this->option('amount');
+
+                if ($name !== null) {
+                    $data['name'] = $name;
+                }
+
+                if ($amount !== null) {
+                    $data['total_amount'] = (float)$amount;
+                }
+
+                if (empty($data)) {
+                    $this->error('Please provide at least one field to update: --name or --amount.');
+                    return;
+                }
+
+                $updatedCustomer = $this->customerService->update($id, $data);
+
+                if (!$updatedCustomer) {
                     $this->error("Customer with id $id not found.");
                     return;
                 }
 
-                $name = $this->option('name');
-                $amount = $this->option('amount');
-
-                if ($name) $customer->name = $name;
-                if ($amount) $customer->total_amount = (float)$amount;
-
-                $updatedCustomer = $this->customerService->update($customer);
-
-                $logService->log('update', $updatedCustomer->toArray(), $updatedCustomer->created_by);
+                $this->customerLogService->log('update', $updatedCustomer->toArray(), $updatedCustomer->created_by);
                 $this->info("Customer updated:\n" . json_encode($updatedCustomer, JSON_PRETTY_PRINT));
                 break;
 
@@ -117,7 +120,7 @@ class CustomerCommand extends Command
 
                 $deleted = $this->customerService->delete($id);
                 if ($deleted) {
-                    $logService->log('delete', ['id' => $id], 'unknown');
+                    $this->customerLogService->log('delete', ['id' => $id], 'unknown');
                     $this->info("Customer with id $id deleted.");
                 } else {
                     $this->error("Customer with id $id not found.");

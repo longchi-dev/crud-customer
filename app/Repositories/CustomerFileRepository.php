@@ -5,11 +5,9 @@ namespace App\Repositories;
 use App\Models\Customer;
 use Illuminate\Support\Str;
 
-class CustomerFileRepository extends CustomerRepository implements ICustomerRepository
+class CustomerFileRepository implements ICustomerRepository
 {
-    private string $filePath;
-
-    public function __construct()
+    public function __construct(private string $filePath)
     {
         $this->filePath = config('customers.file_path');
     }
@@ -43,42 +41,53 @@ class CustomerFileRepository extends CustomerRepository implements ICustomerRepo
         return null;
     }
 
-    public function delete(string $id): void
+    public function create(Customer $customer): void
     {
-        $rows = array_filter($this->readFile(), fn($row) => $row['id'] !== $id);
-        $this->writeFile(array_values($rows));
-    }
-
-    protected function persistCreate(Customer $customer): void
-    {
-        if (!$customer->id) {
-            $customer->id = Str::uuid()->toString();
-        }
-
         $rows = $this->readFile();
+        $vipLevel = $this->calculateVipLevel($customer->total_amount);
+
         $rows[] = [
             'id' => $customer->id,
             'name' => $customer->name,
             'total_amount' => $customer->total_amount,
-            'vip_level' => $customer->vip_level,
+            'vip_level' => $vipLevel,
             'created_by' => $customer->created_by,
         ];
         $this->writeFile($rows);
     }
 
-    protected function persistUpdate(Customer $customer): void
+    public function update(string $id, array $data): void
     {
         $rows = $this->readFile();
+
         foreach ($rows as &$row) {
-            if ($row['id'] === $customer->id) {
-                $row['name'] = $customer->name;
-                $row['total_amount'] = $customer->total_amount;
-                $row['vip_level'] = $customer->vip_level;
-                $row['created_by'] = $customer->created_by;
+            if ($row['id'] === $id) {
+                if (isset($data['name'])) {
+                    $row['name'] = $data['name'];
+                }
+                if (isset($data['total_amount'])) {
+                    $row['total_amount'] = $data['total_amount'];
+                    $row['vip_level'] = $this->calculateVipLevel($data['total_amount']);
+                }
+                if (isset($data['created_by'])) {
+                    $row['created_by'] = $data['created_by'];
+                }
                 break;
             }
         }
+
         $this->writeFile($rows);
+    }
+
+
+    public function delete(string $id): bool
+    {
+        $rows = $this->readFile();
+        $originalCount = count($rows);
+        $rows = array_filter($rows, fn($row) => $row['id'] !== $id);
+        $this->writeFile(array_values($rows));
+
+        return count($rows) < $originalCount;
     }
 
     private function readFile(): array
@@ -92,5 +101,19 @@ class CustomerFileRepository extends CustomerRepository implements ICustomerRepo
     private function writeFile(array $data): void
     {
         file_put_contents($this->filePath, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    protected function calculateVipLevel(float $totalAmount): int
+    {
+        $vipConfig = config('vip', []);
+        $level = 0;
+
+        foreach ($vipConfig as $vip) {
+            if ($totalAmount >= $vip['amount']) {
+                $level = $vip['level'];
+            }
+        }
+
+        return $level;
     }
 }

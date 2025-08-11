@@ -27,39 +27,29 @@ class CustomerService
 
     public function create(Customer $customer): Customer
     {
-        if (!$customer->id) {
-            $customer->id = (string) Str::uuid();
-        }
-
         $this->customerRepository->create($customer);
-
         return $customer;
     }
 
-    public function update(Customer $customer): ?Customer
-    {
-        $existCustomer = $this->customerRepository->findById($customer->id);
-
-        if (!$existCustomer) {
-            return null;
-        }
-
-        $existCustomer->name = $customer->name ?? $existCustomer->name;
-        $existCustomer->total_amount = $customer->total_amount ?? $existCustomer->total_amount;
-        $this->customerRepository->update($existCustomer);
-        return $existCustomer;
-    }
-
-    public function delete(string $id): bool
+    public function update(string $id, array $data): ?Customer
     {
         $customer = $this->customerRepository->findById($id);
 
         if (!$customer) {
-            return false;
+            return null;
         }
 
-        $this->customerRepository->delete($id);
+        foreach ($data as $key => $value) {
+            $customer->$key = $value;
+        }
 
-        return true;
+        $this->customerRepository->update($id, $data);
+        return $customer;
+    }
+
+
+    public function delete(string $id): bool
+    {
+        return $this->customerRepository->delete($id);
     }
 }

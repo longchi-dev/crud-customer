@@ -4,7 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Customer;
 
-class CustomerDbRepository extends CustomerRepository implements ICustomerRepository
+class CustomerDbRepository implements ICustomerRepository
 {
     /**
      * Create a new class instance.
@@ -24,18 +24,18 @@ class CustomerDbRepository extends CustomerRepository implements ICustomerReposi
         // TODO: Implement findById() method.
     }
 
+    public function create(Customer $customer): void
+    {
+        // TODO: Implement create() method.
+    }
+
+    public function update(string $id, array $data): void
+    {
+        // TODO: Implement update() method.
+    }
+
     public function delete(string $id): void
     {
         // TODO: Implement delete() method.
-    }
-
-    protected function persistCreate(Customer $customer): void
-    {
-        // TODO: Implement persistCreate() method.
-    }
-
-    protected function persistUpdate(Customer $customer): void
-    {
-        // TODO: Implement persistUpdate() method.
     }
 }

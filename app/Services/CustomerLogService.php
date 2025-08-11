@@ -4,20 +4,11 @@ namespace App\Services;
 
 class CustomerLogService
 {
-    private static ?CustomerLogService $instance = null;
     private string $logFile;
 
-    private function __construct()
+    public function __construct()
     {
         $this->logFile = storage_path('logs/customer.log');
-    }
-
-    public static function getInstance(): CustomerLogService
-    {
-        if (self::$instance === null) {
-            self::$instance = new CustomerLogService();
-        }
-        return self::$instance;
     }
 
     public function log(string $action, array $data, string $user): void
