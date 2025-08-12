@@ -8,6 +8,7 @@ use App\Repositories\Customer\CustomerFileRepository;
 use App\Repositories\Customer\ICustomerRepository;
 use App\Services\Customer\CustomerLogService;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ICustomerRepository::class, function ($app) {
-            $filePath = config('customers.file_path');
+            $filePath = config('customer.file_path');
             $fileRepo = new CustomerFileRepository($filePath);
             return new CustomerCachedRepository($fileRepo);
         });
@@ -37,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Passport::enablePasswordGrant();
+        Passport::tokensExpireIn(now()->addMinutes(1));
+        Passport::refreshTokensExpireIn(now()->addDays(1));
     }
 }

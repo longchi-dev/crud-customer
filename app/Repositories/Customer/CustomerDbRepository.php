@@ -6,29 +6,29 @@ use App\Models\Customer;
 class CustomerDbRepository implements ICustomerRepository
 {
 
-    public function getAll(): array
+    public function getAllCustomers(): array
     {
         return Customer::all()->toArray();
     }
 
-    public function findById(string $id): ?Customer
+    public function findCustomerById(string $uuid): ?Customer
     {
-        return Customer::find($id);
+        return Customer::where('uuid', $uuid)->first();
     }
 
-    public function create(Customer $customer): void
+    public function createCustomer(Customer $customer): void
     {
         $customer->save();
     }
 
-    public function update(Customer $customer): void
+    public function saveCustomer(Customer $customer): void
     {
         $customer->save();
     }
 
-    public function delete(string $id): bool
+    public function deleteCustomer(string $uuid): bool
     {
-        $customer = Customer::find($id);
-        return (bool)$customer?->delete();
+        $deleted = Customer::where('uuid', $uuid)->delete();
+        return $deleted > 0;
     }
 }

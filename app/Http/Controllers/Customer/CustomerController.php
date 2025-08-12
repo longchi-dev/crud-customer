@@ -8,35 +8,35 @@ use App\Http\Requests\Customer\CustomerCreateRequest;
 use App\Http\Requests\Customer\CustomerDeleteRequest;
 use App\Http\Requests\Customer\CustomerGetRequest;
 use App\Http\Requests\Customer\CustomerUpdateRequest;
+use App\Services\Customer\CustomerLogService;
 use App\Services\Customer\CustomerService;
 
 class CustomerController extends Controller
 {
-    public function __construct(private readonly CustomerService $customerService)
-    {
-    }
+    public function __construct(
+        private readonly CustomerService $customerService,
+        private readonly CustomerLogService $customerLogService
+    ) {}
 
     public function getAll()
     {
-        return response()->json($this->customerService->getAll(), 200);
+        return $this->successResponse($this->customerService->getAll());
     }
 
-    /**
-     * @throws CustomerNotFoundException
-     */
     public function getById(CustomerGetRequest $request)
     {
-        // Sửa throw Exception
-        $id = $request->validated()['id'];
-        $customer = $this->customerService->getById($id);
-        return response()->json($customer, 200);
+        $uuid = $request->validated()['uuid'];
+        $customer = $this->customerService->getById($uuid);
+        return $this->successResponse($customer);
     }
 
     public function create(CustomerCreateRequest $request)
     {
         $validated = $request->validated();
-        $createdCustomer = $this->customerService->create($validated);
-        return response()->json($createdCustomer, 201);
+        $createdCustomer = $this->customerService->create($validated['name'], $validated['totalAmount']);
+        $this->customerLogService->log('create', $createdCustomer->toArray(), $createdCustomer->createdBy);
+        return $this->successResponse($createdCustomer, 'Customer created successfully', 201);
+
     }
 
     /**
@@ -45,8 +45,13 @@ class CustomerController extends Controller
     public function update(CustomerUpdateRequest $request)
     {
         $validated = $request->validated();
-        $updatedCustomer = $this->customerService->update($validated['id'], $validated);
-        return response()->json($updatedCustomer, 200);
+        $updatedCustomer = $this->customerService->update(
+            $validated['uuid'],
+            $validated['name'] ?? null,
+            $validated['totalAmount'] ?? null
+        );
+        $this->customerLogService->log('update', $updatedCustomer->toArray(), $updatedCustomer->createdBy);
+        return $this->successResponse($updatedCustomer, 'Customer updated successfully');
     }
 
 
@@ -55,8 +60,9 @@ class CustomerController extends Controller
      */
     public function delete(CustomerDeleteRequest $request)
     {
-        $validated = $request->validated();
-        $this->customerService->delete($validated['id']);
-        return response()->json(['message' => 'Customer deleted successfully'], 200);
+        $uuid = $request->validated()['uuid'];
+        $this->customerService->delete($uuid);
+        $this->customerLogService->log('delete', ['uuid' => $uuid], 'unknown');
+        return $this->successResponse(null, 'Customer deleted successfully');
     }
 }

@@ -8,15 +8,15 @@ class CustomerFileRepository implements ICustomerRepository
 {
     public function __construct(private string $filePath)
     {
-        $this->filePath = config('customers.file_path');
+        $this->filePath = config('customer.file_path');
     }
 
-    public function getAll(): array
+    public function getAllCustomers(): array
     {
         $rows = $this->readFile();
 
         return array_map(fn($row) => new Customer([
-            'id' => $row['id'],
+            'uuid' => $row['uuid'],
             'name' => $row['name'],
             'totalAmount' => $row['totalAmount'],
             'vipLevel' => $row['vipLevel'],
@@ -24,12 +24,12 @@ class CustomerFileRepository implements ICustomerRepository
         ]), $rows);
     }
 
-    public function findById(string $id): ?Customer
+    public function findCustomerById(string $uuid): ?Customer
     {
         foreach ($this->readFile() as $row) {
-            if ($row['id'] === $id) {
+            if ($row['uuid'] === $uuid) {
                 return new Customer([
-                    'id' => $row['id'],
+                    'uuid' => $row['uuid'],
                     'name' => $row['name'],
                     'totalAmount' => $row['totalAmount'],
                     'vipLevel' => $row['vipLevel'],
@@ -40,30 +40,29 @@ class CustomerFileRepository implements ICustomerRepository
         return null;
     }
 
-    public function create(Customer $customer): void
+    public function createCustomer(Customer $customer): void
     {
         $rows = $this->readFile();
-        $vipLevel = $this->calculateVipLevel($customer->totalAmount);
 
         $rows[] = [
-            'id' => $customer->id,
+            'uuid' => $customer->uuid,
             'name' => $customer->name,
             'totalAmount' => $customer->totalAmount,
-            'vipLevel' => $vipLevel,
+            'vipLevel' => $customer->vipLevel,
             'createdBy' => $customer->createdBy,
         ];
         $this->writeFile($rows);
     }
 
-    public function update(Customer $customer): void
+    public function saveCustomer(Customer $customer): void
     {
         $rows = $this->readFile();
 
         foreach ($rows as &$row) {
-            if ($row['id'] === $customer->id) {
+            if ($row['uuid'] === $customer->uuid) {
                 $row['name'] = $customer->name;
                 $row['totalAmount'] = $customer->totalAmount;
-                $row['vipLevel'] = $this->calculateVipLevel($customer->totalAmount);
+                $row['vipLevel'] = $customer->vipLevel;
                 $row['createdBy'] = $customer->createdBy;
                 break;
             }
@@ -72,12 +71,11 @@ class CustomerFileRepository implements ICustomerRepository
         $this->writeFile($rows);
     }
 
-
-    public function delete(string $id): bool
+    public function deleteCustomer(string $uuid): bool
     {
         $rows = $this->readFile();
         $originalCount = count($rows);
-        $rows = array_filter($rows, fn($row) => $row['id'] !== $id);
+        $rows = array_filter($rows, fn($row) => $row['uuid'] !== $uuid);
         $this->writeFile(array_values($rows));
 
         return count($rows) < $originalCount;
@@ -94,19 +92,5 @@ class CustomerFileRepository implements ICustomerRepository
     private function writeFile(array $data): void
     {
         file_put_contents($this->filePath, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
-    }
-
-    protected function calculateVipLevel(float $totalAmount): int
-    {
-        $vipConfig = config('vip', []);
-        $level = 0;
-
-        foreach ($vipConfig as $vip) {
-            if ($totalAmount >= $vip['amount']) {
-                $level = $vip['level'];
-            }
-        }
-
-        return $level;
     }
 }

@@ -18,62 +18,80 @@ class CustomerService
 
     public function getAll(): array
     {
-        return $this->customerRepository->getAll();
+        return $this->customerRepository->getAllCustomers();
     }
 
-    /**
-     * @throws CustomerNotFoundException
-     */
-    public function getById(string $id): Customer
+    public function getById(string $uuid): ?Customer
     {
-        $customer = $this->customerRepository->findById($id);
-        if (!$customer) {
-            throw new CustomerNotFoundException();
-        }
-        return $customer;
+        return $this->customerRepository->findCustomerById($uuid);
     }
 
-    public function create(array $data): Customer
+    public function create(string $name, float $totalAmount): Customer
     {
-        $customer = Customer::make($data);
-        $this->customerRepository->create($customer);
-        return $customer;
-    }
+        $vipLevel = $this->calculateVipLevel($totalAmount);
 
-    /**
-     * @throws CustomerNotFoundException
-     */
-    public function update(string $id, array $data): ?Customer
-    {
-        $customer = $this->customerRepository->findById($id);
+        $customer = Customer::make(
+            $name,
+            $totalAmount,
+            $vipLevel
+        );
 
-        if (!$customer) {
-            throw new CustomerNotFoundException();
-        }
-
-        if(isset($data['name'])) {
-            $customer->name = $data['name'];
-        }
-
-        if(isset($data['totalAmount'])) {
-            $customer->totalAmount = $data['totalAmount'];
-        }
-
-        $this->customerRepository->update($customer);
+        $this->customerRepository->createCustomer($customer);
         return $customer;
     }
 
     /**
      * @throws CustomerNotFoundException
      */
-    public function delete(string $id): bool
+    public function update(
+        string $uuid,
+        ?string $name = null,
+        ?float $totalAmount = null
+    ): ?Customer
     {
-        $customer = $this->customerRepository->findById($id);
+        $customer = $this->customerRepository->findCustomerById($uuid);
 
-        if (!$customer) {
+        if(!$customer) {
             throw new CustomerNotFoundException();
         }
 
-        return $this->customerRepository->delete($id);
+        if ($name !== null) {
+            $customer->name = $name;
+        }
+
+        if ($totalAmount !== null) {
+            $customer->totalAmount = $totalAmount;
+            $customer->vipLevel = $this->calculateVipLevel($totalAmount);
+        }
+
+        $this->customerRepository->saveCustomer($customer);
+        return $customer;
+    }
+
+    /**
+     * @throws CustomerNotFoundException
+     */
+    public function delete(string $uuid): bool
+    {
+        $deleteCustomer = $this->customerRepository->deleteCustomer($uuid);
+
+        if (!$deleteCustomer) {
+            throw new CustomerNotFoundException();
+        }
+
+        return true;
+    }
+
+    private function calculateVipLevel(float $totalAmount)  : int {
+        $vipConfig = config('vip', []);
+        $level = 0;
+
+        foreach ($vipConfig as $vip) {
+            if ($totalAmount >= $vip['amount']) {
+                $level = $vip['level'];
+            }
+        }
+
+        return $level;
     }
 }

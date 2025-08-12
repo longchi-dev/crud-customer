@@ -6,9 +6,9 @@ use App\Models\Customer;
 
 interface ICustomerRepository
 {
-    public function getAll(): array;
-    public function findById(string $id): ?Customer;
-    public function create(Customer $customer): void;
-    public function update(Customer $customer): void;
-    public function delete(string $id): bool;
+    public function getAllCustomers(): array;
+    public function findCustomerById(string $uuid): ?Customer;
+    public function createCustomer(Customer $customer): void;
+    public function saveCustomer(Customer $customer): void;
+    public function deleteCustomer(string $uuid): bool;
 }

@@ -21,7 +21,6 @@ class CustomerLogService
         ];
 
         $line = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
-
         file_put_contents($this->logFile, $line, FILE_APPEND | LOCK_EX);
     }
 

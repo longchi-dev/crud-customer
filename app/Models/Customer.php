@@ -7,43 +7,39 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
- * @property string $id
+ * @property string $uuid
  * @property string $name
  * @property float $totalAmount
  * @property int $vipLevel
  * @property string $createdBy
  * @mixin Builder
  */
-class Customer extends Model implements \JsonSerializable
+class Customer extends Model
 {
-    protected $fillable = ['id', 'name', 'totalAmount', 'vipLevel', 'createdBy'];
+    protected $fillable = [
+        'uuid',
+        'name',
+        'totalAmount',
+        'vipLevel',
+        'createdBy'
+    ];
 
     protected $primaryKey = 'id';
 
-    public static function make(array $attributes): Customer
+    public static function make(
+        string $name,
+        float $totalAmount,
+        int $vipLevel
+    ): Customer
     {
-        $instance = new static();
-
-        if (empty($attributes['id'])) {
-            $attributes['id'] = (string)Str::uuid();
-        };
-
-        if (!empty($attributes['name'])) {
-            $attributes['createdBy'] = $attributes['name'];
-        }
-
-        foreach ($attributes as $key => $value) {
-            if (in_array($key, $instance->fillable)) {
-                $instance->$key = $value;
-            }
-        }
-
-        return $instance;
+        return new static([
+            'uuid' => (string) Str::uuid(),
+            'name' => $name,
+            'totalAmount' => $totalAmount,
+            'vipLevel' => $vipLevel,
+            'createdBy' => $name
+        ]);
     }
 
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
-    }
 }
 

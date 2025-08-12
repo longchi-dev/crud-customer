@@ -9,13 +9,11 @@ Route::get('/customers/{id}', [CustomerController::class, 'getById']);
 Route::put('/customers/{id}', [CustomerController::class, 'update']);
 Route::delete('/customers/{id}', [CustomerController::class, 'delete']);
 
-Route::group([
-    'middleware' => 'api',
-    'prefix' => 'auth'
-], function ($router) {
-    Route::post('login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
-    Route::get('profile', [\App\Http\Controllers\Auth\AuthController::class, 'profile']);
-    Route::post('logout', [\App\Http\Controllers\Auth\AuthController::class, 'logout']);
-    Route::post('refresh', [\App\Http\Controllers\Auth\AuthController::class, 'refresh']);
-});
+Route::controller(\App\Http\Controllers\Auth\AuthController::class)->group(function () {
+    Route::prefix('auth')->group(function () {
+        # Auth Routes
+        Route::post('login', 'login')->name('login');
 
+        # Auth
+    });
+});

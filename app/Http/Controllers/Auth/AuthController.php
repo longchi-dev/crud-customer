@@ -2,81 +2,42 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
-use Tymon\JWTAuth\Facades\JWTFactory;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * @method \Illuminate\Routing\Controller middleware($middleware, array $options = [])
  */
 class AuthController extends Controller
 {
-    public function __construct()
+    public function __construct(protected AuthService $authService)
     {
-        $this->middleware('auth:api', ['except' => ['login', 'refresh']]);
+
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $credentials = $request->only('email', 'password');
+        $data = $request->validated();
 
-        if (!$token = auth('api')->attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
+        $result = $this->authService->authLogin($data['email'], $data['password']);
 
-        $refreshToken = $this->createRefreshToken();
-        return $this->respondWithToken($token, $refreshToken);
+        return $this->successResponse($result);
     }
 
-    public function logout()
+    public function register(RegisterRequest $request)
     {
-        auth('api')->logout();
-        return response()->json(['message' => 'Successfully logged out']);
+        $data = $request->validated();
+        $result = $this->authService->authRegister($data['email'], $data['password']);
+        return $this->successResponse($result);
     }
 
-    public function refresh(Request $request)
+    public function refreshToken(Request $request)
     {
-        $refreshToken = $request->input('refresh_token');
-
-        $payload = JWTAuth::setToken($refreshToken)->getPayload();
-
-        $user = User::query()->findOrFail($payload->get('sub'));
-
-        auth('api')->invalidate();
-
-        $token = JWTAuth::fromUser($user);
-
-        $refreshToken = $this->createRefreshToken();
-
-        return $this->respondWithToken($token, $refreshToken);
-    }
-
-    public function profile()
-    {
-        return response()->json(auth('api')->user());
-    }
-
-    private function respondWithToken($token, $refreshToken)
-    {
-        return response()->json([
-            'access_token' => $token,
-            'refresh_token' => $refreshToken,
-            'token_type' => 'bearer',
-            'expires_in' => auth()->guard('api')->factory()->getTTL() * 60
-        ]);
-    }
-
-    private function createRefreshToken()
-    {
-        $data = [
-            'sub' => auth('api')->user()->id,
-            'random' => rand() . time(),
-            'exp' => time() + (config('jwt.refresh_ttl') * 60),
-        ];
-
-        $payload = JWTFactory::class::customClaims($data)->make();
-        return JWTAuth::manager()->encode($payload);
+        $this->authService->refreshToken($request);
     }
 }

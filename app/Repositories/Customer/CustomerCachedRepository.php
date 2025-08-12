@@ -12,39 +12,39 @@ class CustomerCachedRepository implements ICustomerRepository
 
     }
 
-    public function getAll(): array
+    public function getAllCustomers(): array
     {
         return Cache::remember($this->getKey() . 'all', 60, function () {
-            return $this->customerRepository->getAll();
+            return $this->customerRepository->getAllCustomers();
         });
     }
 
-    public function findById(string $id): ?Customer
+    public function findCustomerById(string $uuid): ?Customer
     {
-        return Cache::remember($this->getKey() . $id, 60, function () use ($id) {
-            return $this->customerRepository->findById($id);
+        return Cache::remember($this->getKey() . $uuid, 60, function () use ($uuid) {
+            return $this->customerRepository->findCustomerById($uuid);
         });
     }
 
-    public function create(Customer $customer): void
+    public function createCustomer(Customer $customer): void
     {
-        $this->customerRepository->create($customer);
+        $this->customerRepository->createCustomer($customer);
         Cache::forget($this->getKey() . 'all');
     }
 
-    public function update(Customer $customer): void
+    public function saveCustomer(Customer $customer): void
     {
-        $this->customerRepository->update($customer);
+        $this->customerRepository->saveCustomer($customer);
         Cache::forget($this->getKey() . 'all');
-        Cache::forget($this->getKey() . $customer->id);
+        Cache::forget($this->getKey() . $customer->uuid);
     }
 
-    public function delete(string $id): bool
+    public function deleteCustomer(string $uuid): bool
     {
-        $result = $this->customerRepository->delete($id);
+        $result = $this->customerRepository->deleteCustomer($uuid);
         if ($result) {
             Cache::forget($this->getKey() . 'all');
-            Cache::forget($this->getKey() . $id);
+            Cache::forget($this->getKey() . $uuid);
         }
         return $result;
     }

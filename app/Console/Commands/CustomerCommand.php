@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\Customer\CustomerNotFoundException;
 use App\Models\Customer;
 use App\Services\Customer\CustomerLogService;
 use App\Services\Customer\CustomerService;
@@ -15,7 +16,11 @@ class CustomerCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'customer {action : list|find|create|update|delete} {--id= : Customer ID} {--name= : Customer Name} {--amount= : Total Amount}';
+    protected $signature = 'customer
+        {action : list|find|create|update|delete}
+        {--uuid= : Customer UUID}
+        {--name= : Customer Name}
+        {--amount= : Total Amount}';
 
     /**
      * The console command description.
@@ -24,13 +29,17 @@ class CustomerCommand extends Command
      */
     protected $description = 'CRUD Customer API';
 
-    public function __construct(protected CustomerService $customerService, protected CustomerLogService $customerLogService)
+    public function __construct(
+        protected CustomerService $customerService,
+        protected CustomerLogService $customerLogService
+    )
     {
         parent::__construct();
     }
 
     /**
      * Execute the console command.
+     * @throws CustomerNotFoundException
      */
     public function handle(): void
     {
@@ -43,17 +52,15 @@ class CustomerCommand extends Command
                 break;
 
             case 'find':
-                $id = $this->option('id');
-                if (!$id) {
-                    $this->error('Please provide --id option.');
+                $uuid = $this->option('uuid');
+
+                if (!$uuid) {
+                    $this->error('Please provide --uuid option.');
                     return;
                 }
-                $customer = $this->customerService->findById($id);
-                if (!$customer) {
-                    $this->error("Customer with id $id not found.");
-                } else {
-                    $this->info(json_encode($customer, JSON_PRETTY_PRINT));
-                }
+
+                $customer = $this->customerService->getById($uuid);
+                $this->info(json_encode($customer, JSON_PRETTY_PRINT));
                 break;
 
             case 'create':
@@ -65,66 +72,47 @@ class CustomerCommand extends Command
                     return;
                 }
 
-                $customer = Customer::make([
-                    'name' => $name,
-                    'total_amount' => (float) $amount,
-                    'vip_level' => 0,
-                ]);
-
+                $customer = $this->customerService->create($name, $amount);
 
                 $this->customerLogService->log('create', $customer->toArray(), $name);
                 $this->info("Customer created:\n" . json_encode($customer, JSON_PRETTY_PRINT));
                 break;
 
             case 'update':
-                $id = $this->option('id');
-                if (!$id) {
-                    $this->error('Please provide --id option.');
+                $uuid = $this->option('uuid');
+
+                if (!$uuid) {
+                    $this->error('Please provide --uuid option.');
                     return;
                 }
 
-                $data = [];
                 $name = $this->option('name');
                 $amount = $this->option('amount');
 
-                if ($name !== null) {
-                    $data['name'] = $name;
-                }
 
-                if ($amount !== null) {
-                    $data['total_amount'] = (float)$amount;
-                }
-
-                if (empty($data)) {
+                if ($name === null && $amount === null) {
                     $this->error('Please provide at least one field to update: --name or --amount.');
                     return;
                 }
 
-                $updatedCustomer = $this->customerService->update($id, $data);
+                $updatedCustomer = $this->customerService->update($uuid, $name, $amount);
 
-                if (!$updatedCustomer) {
-                    $this->error("Customer with id $id not found.");
-                    return;
-                }
-
-                $this->customerLogService->log('update', $updatedCustomer->toArray(), $updatedCustomer->created_by);
+                $this->customerLogService->log('update', $updatedCustomer->toArray(), $updatedCustomer->createdBy);
                 $this->info("Customer updated:\n" . json_encode($updatedCustomer, JSON_PRETTY_PRINT));
                 break;
 
             case 'delete':
-                $id = $this->option('id');
-                if (!$id) {
-                    $this->error('Please provide --id option.');
+                $uuid = $this->option('uuid');
+
+                if (!$uuid) {
+                    $this->error('Please provide --uuid option.');
                     return;
                 }
 
-                $deleted = $this->customerService->delete($id);
-                if ($deleted) {
-                    $this->customerLogService->log('delete', ['id' => $id], 'unknown');
-                    $this->info("Customer with id $id deleted.");
-                } else {
-                    $this->error("Customer with id $id not found.");
-                }
+                $this->customerService->delete($uuid);
+
+                $this->customerLogService->log('delete', ['uuid' => $uuid], 'unknown');
+                $this->info("Customer with id $uuid deleted.");
                 break;
 
             default:

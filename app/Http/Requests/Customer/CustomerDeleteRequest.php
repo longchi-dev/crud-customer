@@ -17,7 +17,7 @@ class CustomerDeleteRequest extends FormRequest
     public function prepareForValidation(): void
     {
         $this->merge([
-            'id' => $this->route('id'),
+            'uuid' => $this->route('uuid'),
         ]);
     }
 
@@ -29,7 +29,7 @@ class CustomerDeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id' => 'required|uuid|exists:customers,id',
+            'uuid' => 'required|uuid|exists:customers,uuid',
         ];
     }
 }

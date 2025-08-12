@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Customer;
+namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CustomerGetRequest extends FormRequest
+class LoginRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -12,13 +12,6 @@ class CustomerGetRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
-    }
-
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'uuid' => $this->route('uuid'),
-        ]);
     }
 
     /**
@@ -29,7 +22,8 @@ class CustomerGetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'uuid' => 'required|uuid|exists:customers,uuid',
+            'email' => 'required|string|email|max:255',
+            'password' => 'required|string|min:6',
         ];
     }
 }
