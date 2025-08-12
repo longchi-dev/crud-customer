@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Customer;
 
 use App\Exceptions\Customer\CustomerNotFoundException;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\CustomerCreateRequest;
 use App\Http\Requests\Customer\CustomerDeleteRequest;
 use App\Http\Requests\Customer\CustomerGetRequest;
